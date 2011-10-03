@@ -50,17 +50,20 @@ class cache
 	
 	var $command_counters = array
 	(
-		'add'       => 0,
-		'append'    => 0,
-		'decrement' => 0,
-		'delete'    => 0,
-		'flush'     => 0,
-		'get'       => 0,
-		'get_list'  => 0,
-		'increment' => 0,
-		'prepend'   => 0,
-		'replace'   => 0,
-		'set'       => 0
+		'add'          => 0,
+		'append'       => 0,
+		'decrement'    => 0,
+		'delete'       => 0,
+		'fetch'        => 0,
+		'fetchAll'     => 0,
+		'flush'        => 0,
+		'get'          => 0,
+		'get_delayed'  => 0,
+		'get_list'     => 0,
+		'increment'    => 0,
+		'prepend'      => 0,
+		'replace'      => 0,
+		'set'          => 0
 	);
 	
 	var $hit_counters = array
@@ -228,12 +231,77 @@ class cache
 	
 	function fetch()
 	{
-	
+		if ($this->ignore_connection_failures && ! $this->memcache)
+		{
+			return $this->default_failed_return;
+		}
+
+		$this->command_counters['fetch']++;
+
+		if ($this->library == 'memcached')
+		{
+			$result = $this->memcache->fetch();
+
+			if ($result)
+			{
+				$this->hit_counters['hit']++;
+			}
+			else
+			{
+				$this->hit_counters['miss']++;
+			}
+			
+			if ($this->use_internal_cache)
+			{
+				$this->cached[$result['key']] = $result['value'];
+			}
+			
+			return $result;
+		}
+		else
+		{
+			return $this->default_failed_return;
+		}
 	}
 
 	function fetchAll()
 	{
-	
+		if ($this->ignore_connection_failures && ! $this->memcache)
+		{
+			return $this->default_failed_return;
+		}
+
+		$this->command_counters['fetchAll']++;
+
+		if ($this->library == 'memcached')
+		{
+			$this->hit_counters['hit']++;
+
+			$result = $this->memcache->fetchAll();
+			
+			if ($result)
+			{
+				$this->hit_counters['hit']++;
+			}
+			else
+			{
+				$this->hit_counters['miss']++;
+			}
+
+			if ($this->use_internal_cache)
+			{
+				foreach ((array)$result as $v)
+				{
+					$this->cached[$v['key']] = $v['value'];
+				}
+			}
+			
+			return $result;
+		}
+		else
+		{
+			return $this->default_failed_return;
+		}
 	}
 
 	function flush()
@@ -352,6 +420,21 @@ class cache
 		$this->hit_counters['hit'] += count($get_results);
 		
 		return $result;
+	}
+	
+	function getDelayed(array $keys, $with_cas = false, $callback = NULL)
+	{
+		if ($this->ignore_connection_failures && ! $this->memcache)
+		{
+			return $this->default_failed_return;
+		}
+
+		$this->command_counters['get_delayed']++;
+
+		if ($this->library == 'memcached')
+		{
+			return $this->memcache->getDelayed($keys, $with_cas, $callback);
+		}		
 	}
 	
 	function getResultCode()
@@ -503,9 +586,9 @@ class cache
 		}
 	}
 
-	function setMulti(array $items, $expire = NULL)
+	function set_list(array $items, $expire = NULL)
 	{
-	
+		
 	}
 }
 
