@@ -22,8 +22,9 @@
 *                                                                               *
 \*******************************************************************************/
 
-class cache
+class Cache
 {
+	static $_instance                = array();
 	private $memcache                = NULL;
 	private $flags;
 	
@@ -72,13 +73,24 @@ class cache
 		'hit'          => 0,
 		'miss'         => 0
 	);
+
+	// Allows multiple instances, for example separating sessions
+	static function instance($instance_name = 'default')	
+	{
+		if (! self::$_instance[$instance_name])
+		{
+			self::$_instance[$instance_name] = new Cache;
+		}
+		
+		return self::$_instance[$instance_name];
+	}
 	
 	// failure_callback is not supported by the memcached library
 	function connect(array $servers, $failure_callback = NULL)
 	{
 		foreach ((array)$this->library_order_search as $library)
 		{
-			if (! $this->library && class_exists($library))
+			if ($this->library === NULL && class_exists($library))
 			{
 				$this->memcache = new $library;
 				$this->library  = $library;
