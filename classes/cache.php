@@ -561,7 +561,7 @@ class Cache
 			return $this->memcache->set($key, $value, $expire);
 		}
 		
-		if ($this->library == 'memcached')
+		if ($this->library == 'memcache')
 		{
 			return $this->memcache->set($key, $value, $this->flags, $expire);		
 		}
